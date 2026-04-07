@@ -21,7 +21,8 @@ public struct CodeBlockConfiguration {
     public var actionButtonHoverOpacity: Double
     public var actionButtonIcon: Image?
     public var actionButtonTooltip: String
-    
+    public var syntaxHighlight: SyntaxHighlightConfiguration
+
     public init(
         showLanguage: Bool = true,
         showCopyButton: Bool = true,
@@ -35,7 +36,8 @@ public struct CodeBlockConfiguration {
         actionButtonOpacity: Double = 0.5,
         actionButtonHoverOpacity: Double = 1.0,
         actionButtonIcon: Image? = nil,
-        actionButtonTooltip: String = "Execute"
+        actionButtonTooltip: String = "Execute",
+        syntaxHighlight: SyntaxHighlightConfiguration = SyntaxHighlightConfiguration()
     ) {
         self.showLanguage = showLanguage
         self.showCopyButton = showCopyButton
@@ -50,5 +52,6 @@ public struct CodeBlockConfiguration {
         self.actionButtonHoverOpacity = actionButtonHoverOpacity
         self.actionButtonIcon = actionButtonIcon
         self.actionButtonTooltip = actionButtonTooltip
+        self.syntaxHighlight = syntaxHighlight
     }
 }

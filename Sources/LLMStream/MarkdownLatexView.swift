@@ -188,6 +188,9 @@ private extension MarkdownLatexViewShared {
             --enable-hover: \(configuration.table.enableHover ? "table-row" : "none");
             --enable-zebra-stripes: \(configuration.table.enableZebraStripes ? "table-row" : "none");
         }
+
+        /* ═══ Syntax Highlight: unify code block with hljs theme ═══ */
+        \(configuration.codeBlock.syntaxHighlight.generateOverrideCSS())
         """
     }
     
@@ -232,6 +235,26 @@ private extension MarkdownLatexViewShared {
         guard let bundlePath = Bundle.module.path(forResource: "markdownLatex", ofType: "html"),
               var htmlContent = try? String(contentsOfFile: bundlePath, encoding: .utf8) else {
             return
+        }
+        
+        // Inject hljs theme links AND disable the bundled theme
+        let syntaxHL = configuration.codeBlock.syntaxHighlight
+        let themeLinks = """
+        <link rel="stylesheet" href="\(syntaxHL.lightTheme.cdnURL)" media="(prefers-color-scheme: light)">
+        <link rel="stylesheet" href="\(syntaxHL.darkTheme.cdnURL)" media="(prefers-color-scheme: dark)">
+        """
+        
+        // Remove the bundled highlight.js theme stylesheet so it doesn't conflict
+        // The bundled file is named something like "highlight_xcodeClassicDarkStyle.css"
+        // We replace its <link> tag with our two themed <link> tags
+        if let range = htmlContent.range(of: #"<link[^>]*highlight[^>]*\.css[^>]*>"#, options: .regularExpression) {
+            htmlContent = htmlContent.replacingCharacters(in: range, with: themeLinks)
+        } else {
+            // Fallback: just inject before </head>
+            htmlContent = htmlContent.replacingOccurrences(
+                of: "</head>",
+                with: "\(themeLinks)\n</head>"
+            )
         }
         
         // Set hasActionCallback before content is loaded
@@ -341,7 +364,6 @@ public class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate
             decisionHandler(.allow)
         }
     }
-
 
     public func webView(_ webView: WKWebView,
                         createWebViewWith configuration: WKWebViewConfiguration,
