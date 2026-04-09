@@ -295,6 +295,12 @@ private extension MarkdownLatexViewShared {
 
 // Common Coordinator class
 public class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
+    #if os(macOS)
+/// Call this whenever an overlay appears/disappears above the web view.
+func setCursorDisabled(_ disabled: Bool, in webView: WKWebView) {
+    (webView as? VerticalScrollPassthroughWebView)?.isCursorDisabled = disabled
+}
+#endif
     #if os(iOS)
     var parent: MarkdownLatexViewiOS
     
