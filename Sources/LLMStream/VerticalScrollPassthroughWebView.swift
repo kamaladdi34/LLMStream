@@ -60,18 +60,35 @@ import AppKit
 
 class VerticalScrollPassthroughWebView: WKWebView {
 
-    // MARK: - Cursor suppression
+    // MARK: - Interaction & cursor suppression
+
+    /// When `true`, blocks ALL mouse interaction (hit-testing, hover, clicks, cursor).
+    /// Set alongside `isCursorDisabled` by the suppressor modifier.
+    var isInteractionDisabled: Bool = false                          // ← NEW
 
     /// Set to `true` when a SwiftUI overlay covers this web view.
-    /// Uses the two-pronged approach:
-    ///   1. CSS injection into the web content (beats WebKit render process)
-    ///   2. AppKit cursor rect + tracking area override (beats AppKit layer)
+    /// Uses a multi-pronged approach:
+    ///   1. `hitTest` returns nil → no hover events reach WebKit at all
+    ///   2. CSS injection into the web content (kills :hover styles & pointer-events)
+    ///   3. AppKit cursor rect + tracking area override (beats AppKit layer)
     var isCursorDisabled: Bool = false {
         didSet {
             guard oldValue != isCursorDisabled else { return }
-            applyCSSCursorOverride(disabled: isCursorDisabled)
+            applyCSSOverride(disabled: isCursorDisabled)
             window?.invalidateCursorRects(for: self)
         }
+    }
+
+    // MARK: - Hit-test blocking                                     ← NEW
+
+    /// Returning `nil` makes this view and all its subviews invisible to
+    /// AppKit's mouse-event dispatch. WebKit never receives mouseEntered /
+    /// mouseMoved, so its internal `:hover` tracking never fires.
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        if isInteractionDisabled {
+            return nil
+        }
+        return super.hitTest(point)
     }
 
     // MARK: - Tracking area
@@ -80,7 +97,6 @@ class VerticalScrollPassthroughWebView: WKWebView {
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
-        // Remove our previous tracking area before adding a fresh one.
         if let existing = cursorTrackingArea {
             removeTrackingArea(existing)
         }
@@ -105,14 +121,9 @@ class VerticalScrollPassthroughWebView: WKWebView {
         }
     }
 
-    /// Overriding `cursorUpdate` with NO super call stops AppKit from
-    /// re-applying WebKit's tracking-area cursor after we set ours.
-    /// This is the correct AppKit interception point per Apple DTS guidance.
     override func cursorUpdate(with event: NSEvent) {
         if isCursorDisabled {
             NSCursor.arrow.set()
-            // Intentionally do NOT call super — that would let WebKit
-            // re-install the I-beam through its own tracking area handler.
         } else {
             super.cursorUpdate(with: event)
         }
@@ -121,7 +132,6 @@ class VerticalScrollPassthroughWebView: WKWebView {
     override func mouseMoved(with event: NSEvent) {
         if isCursorDisabled {
             NSCursor.arrow.set()
-            // Do NOT call super for the same reason as cursorUpdate above.
         } else {
             super.mouseMoved(with: event)
         }
@@ -145,13 +155,13 @@ class VerticalScrollPassthroughWebView: WKWebView {
         }
     }
 
-    // MARK: - CSS cursor injection
+    // MARK: - CSS cursor + hover injection                          ← CHANGED
 
-    /// Injects / removes a `* { cursor: default !important; }` style into the
-    /// live web content. This is necessary because WebKit sets its cursor from
-    /// a sandboxed render process that races with — and often wins over —
-    /// AppKit-level overrides.
-    private func applyCSSCursorOverride(disabled: Bool) {
+    /// Injects / removes styles that:
+    ///   1. Force `cursor: default` on everything
+    ///   2. Disable `pointer-events` so `:hover` CSS rules can't activate
+    ///      even if a mouse event somehow reaches the web content
+    private func applyCSSOverride(disabled: Bool) {
         let js: String
         if disabled {
             js = """
@@ -159,7 +169,7 @@ class VerticalScrollPassthroughWebView: WKWebView {
                 if (document.getElementById('__llmstream_cursor_override')) return;
                 var s = document.createElement('style');
                 s.id = '__llmstream_cursor_override';
-                s.innerHTML = '* { cursor: default !important; }';
+                s.innerHTML = '*, *::before, *::after { cursor: default !important; pointer-events: none !important; }';
                 document.head.appendChild(s);
             })();
             """
