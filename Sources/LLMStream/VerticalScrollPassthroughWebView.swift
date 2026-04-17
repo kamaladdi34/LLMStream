@@ -136,7 +136,13 @@ class VerticalScrollPassthroughWebView: WKWebView {
             super.mouseMoved(with: event)
         }
     }
-
+override func mouseExited(with event: NSEvent) {
+    // Always reset to arrow when the mouse leaves the web view,
+    // regardless of isCursorDisabled. This prevents the I-beam
+    // from "leaking" into surrounding UI.
+    NSCursor.arrow.set()
+    super.mouseExited(with: event)
+}
     override func mouseEntered(with event: NSEvent) {
         if isCursorDisabled {
             NSCursor.arrow.set()
