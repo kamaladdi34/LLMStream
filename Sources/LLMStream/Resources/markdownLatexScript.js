@@ -459,14 +459,8 @@ document.addEventListener("DOMContentLoaded", function () {
     };
   }
 
-  // ✅ Dummy engine for texmath: does NOT render math — just passes raw LaTeX
-  // through so that MathJax can pick it up from the DOM later.
-  // texmath will wrap inline math in <eq> and display math in <section><eqn>,
-  // and we override that below with custom render rules that output the
-  // original delimiters so MathJax finds them.
   const mathjaxPassthroughEngine = {
     renderToString: function (latex, options) {
-      // Just return raw LaTeX — MathJax will typeset it from the DOM
       return latex;
     },
   };
@@ -499,18 +493,12 @@ document.addEventListener("DOMContentLoaded", function () {
         rel: "noopener",
       },
     })
-    // ✅ texmath with passthrough engine: protects math from markdown parsing
-    // but does NOT render it — MathJax handles rendering via typesetPromise()
     .use(window.texmath, {
       engine: mathjaxPassthroughEngine,
       delimiters: "dollars",
     })
     .use(markdownLatexPlugin);
 
-  // ✅ Override texmath's render rules to output raw delimiters for MathJax.
-  // texmath creates token types "math_inline" and "math_block" (or
-  // "math_inline_double" for $$). We render them as raw LaTeX with the
-  // original delimiters so MathJax's page scan finds them.
   md.renderer.rules.math_inline = function (tokens, idx) {
     return "$" + tokens[idx].content + "$";
   };
@@ -1053,6 +1041,8 @@ function convertLatexToHTML(text) {
       });
   }
 
+  // ✅ Convert text formatting commands to HTML (non-math contexts)
+  // ✅ Do NOT convert \underline — MathJax handles it in math mode
   text = text.replace(
     /\\textbf\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g,
     "<strong>$1</strong>",
@@ -1064,10 +1054,6 @@ function convertLatexToHTML(text) {
   text = text.replace(
     /\\texttt\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g,
     "<code>$1</code>",
-  );
-  text = text.replace(
-    /\\underline\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g,
-    "<u>$1</u>",
   );
   text = text.replace(
     /\\emph\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g,
@@ -1252,7 +1238,11 @@ function fixOrderedListsInHTML(html) {
     parts.forEach((part) => {
       if (part.type === "list") {
         part.items.forEach((item) => {
-          allItems.push({ content: item, number: currentNum++, afterHTML: "" });
+          allItems.push({
+            content: item,
+            number: currentNum++,
+            afterHTML: "",
+          });
         });
       } else if (part.type === "content" && allItems.length > 0) {
         allItems[allItems.length - 1].afterHTML += part.html;
