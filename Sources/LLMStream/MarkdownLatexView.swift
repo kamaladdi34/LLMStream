@@ -12,19 +12,22 @@ import WebKit
 public struct MarkdownLatexViewiOS: UIViewRepresentable, @preconcurrency MarkdownLatexViewShared {
     typealias ViewContext = Context
     var content: String
+    var isInteractive: Bool
     var height: Binding<CGFloat>
     let configuration: LLMStreamConfiguration
     let onUrlClicked: ((String) -> Void)
     let onCodeAction: ((String) -> Void)?
-    
+
     public init(
         content: String,
+        isInteractive: Bool = true,
         height: Binding<CGFloat>,
         configuration: LLMStreamConfiguration,
         onUrlClicked: @escaping ((String) -> Void),
         onCodeAction: ((String) -> Void)? = nil
     ) {
         self.content = content
+        self.isInteractive = isInteractive
         self.height = height
         self.configuration = configuration
         self.onUrlClicked = onUrlClicked
@@ -50,19 +53,22 @@ public struct MarkdownLatexViewiOS: UIViewRepresentable, @preconcurrency Markdow
 public struct MarkdownLatexViewMacOS: NSViewRepresentable, @preconcurrency MarkdownLatexViewShared {
     typealias ViewContext = Context
     var content: String
+    var isInteractive: Bool
     var height: Binding<CGFloat>
     let configuration: LLMStreamConfiguration
     let onUrlClicked: ((String) -> Void)
     let onCodeAction: ((String) -> Void)?
-    
+
     public init(
         content: String,
+        isInteractive: Bool = true,
         height: Binding<CGFloat>,
         configuration: LLMStreamConfiguration,
         onUrlClicked: @escaping ((String) -> Void),
         onCodeAction: ((String) -> Void)? = nil
     ) {
         self.content = content
+        self.isInteractive = isInteractive
         self.height = height
         self.configuration = configuration
         self.onUrlClicked = onUrlClicked
@@ -78,6 +84,9 @@ public struct MarkdownLatexViewMacOS: NSViewRepresentable, @preconcurrency Markd
     }
 
     public func updateNSView(_ webView: WKWebView, context: Context) {
+        if let passthrough = webView as? VerticalScrollPassthroughWebView {
+            passthrough.isInteractive = isInteractive
+        }
         context.coordinator.lastContent = content
         loadHTML(in: webView)
     }
@@ -94,6 +103,7 @@ public typealias MarkdownLatexView = MarkdownLatexViewMacOS
 // Protocol to share common functionality
 private protocol MarkdownLatexViewShared {
     var content: String { get }
+    var isInteractive: Bool { get }
     var height: Binding<CGFloat> { get }
     var configuration: LLMStreamConfiguration { get }
     var onUrlClicked: ((String) -> Void) { get }
@@ -295,12 +305,6 @@ private extension MarkdownLatexViewShared {
 
 // Common Coordinator class
 public class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
-    #if os(macOS)
-/// Call this whenever an overlay appears/disappears above the web view.
-func setCursorDisabled(_ disabled: Bool, in webView: WKWebView) {
-    (webView as? VerticalScrollPassthroughWebView)?.isCursorDisabled = disabled
-}
-#endif
     #if os(iOS)
     var parent: MarkdownLatexViewiOS
     

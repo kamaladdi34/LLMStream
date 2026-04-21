@@ -9,6 +9,7 @@ import SwiftUI
 
 public struct LLMStreamView: View {
     let text: String
+    let isInteractive: Bool
     let configuration: LLMStreamConfiguration
     let onUrlClicked: ((String) -> Void)
     let onCodeAction: ((String) -> Void)?
@@ -21,11 +22,13 @@ public struct LLMStreamView: View {
 
     public init(
         text: String,
+        isInteractive: Bool = true,
         configuration: LLMStreamConfiguration = .default,
         onUrlClicked: @escaping ((String) -> Void),
         onCodeAction: ((String) -> Void)? = nil
     ) {
         self.text = text
+        self.isInteractive = isInteractive
         self.configuration = configuration
         self.onUrlClicked = onUrlClicked
         self.onCodeAction = onCodeAction
@@ -73,6 +76,7 @@ public struct LLMStreamView: View {
                 } else {
                     MarkdownLatexSegmentView(
                         content: segment.content,
+                        isInteractive: isInteractive,
                         configuration: configuration,
                         onUrlClicked: onUrlClicked,
                         onCodeAction: onCodeAction
@@ -87,6 +91,7 @@ public struct LLMStreamView: View {
 
 private struct MarkdownLatexSegmentView: View {
     let content: String
+    let isInteractive: Bool
     let configuration: LLMStreamConfiguration
     let onUrlClicked: ((String) -> Void)
     let onCodeAction: ((String) -> Void)?
@@ -96,6 +101,7 @@ private struct MarkdownLatexSegmentView: View {
     var body: some View {
         MarkdownLatexView(
             content: content,
+            isInteractive: isInteractive,
             height: $height,
             configuration: configuration,
             onUrlClicked: onUrlClicked,
