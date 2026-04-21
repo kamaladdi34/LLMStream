@@ -17,6 +17,8 @@ struct MarkdownLatexTextProcessor {
                 .replacingOccurrences(of: "\n", with: "\\n")
                 .replacingOccurrences(of: "\r", with: "\\r")
                 .replacingOccurrences(of: "\t", with: "\\t")
+                .replacingOccurrences(of: "</script", with: "<\\/script", options: .caseInsensitive)
+        .replacingOccurrences(of: "</style", with: "<\\/style", options: .caseInsensitive)
         }
         
         if !text.contains("\\begin{document}") || !text.contains("\\end{document}") {
