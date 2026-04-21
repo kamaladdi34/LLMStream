@@ -594,6 +594,9 @@ function fixMathDelimiters(html) {
     },
   );
 
+  html = html.replace(/\\text\{\\LaTeX\}/g, "\\LaTeX");
+  html = html.replace(/\\text\{\\TeX\}/g, "\\TeX");
+
   return html;
 }
 
