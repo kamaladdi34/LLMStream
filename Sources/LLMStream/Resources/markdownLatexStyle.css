@@ -124,7 +124,6 @@ code .plaintext {
 
 .math, .MathJax, mjx-container, mjx-math {
     color: var(--text-color) !important;
-    font-family: var(--math-font-family) !important;
 }
 
 mjx-container mjx-mtable[data-labels] {
